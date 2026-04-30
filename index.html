@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="面向广告创意、活动 Banner 和短视频开屏素材的 AI Prompt 工作台。">
+  <title>Didi Prompt Tool | AI 广告创意 Prompt 工作台</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css?v=20260430a">
+</head>
+<body class="mode-image">
+  <div class="ambient-bg" aria-hidden="true">
+    <span class="ambient-beam beam-a"></span>
+    <span class="ambient-beam beam-b"></span>
+    <span class="ambient-beam beam-c"></span>
+    <span class="subtle-line line-a"></span>
+    <span class="subtle-line line-b"></span>
+  </div>
+
+  <header class="product-nav">
+    <a class="brand" href="#top" aria-label="Didi Prompt Tool 首页">
+      <span class="brand-mark">DP</span>
+      <span>
+        <strong>Didi Prompt Tool</strong>
+        <small>AI 广告创意工作台</small>
+      </span>
+    </a>
+    <nav class="nav-links" aria-label="页面导航">
+      <a href="#workspace">工作台</a>
+      <a href="#finalPrompt">提示词</a>
+      <a href="#privacy">隐私</a>
+      <a href="https://github.com/" target="_blank" rel="noreferrer">GitHub</a>
+    </nav>
+  </header>
+
+  <main id="top" class="app-shell">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">AI Creative Prompt Studio</p>
+        <h1>把广告创意整理成可复制的 AI 提示词</h1>
+        <p id="heroSubhead" class="subhead">适合生成小程序横版 Banner、开屏素材、活动页主视觉、电商促销海报，一键组合画面内容、视觉风格和广告文案。</p>
+        <div class="hero-actions">
+          <a class="primary-link" href="#workspace">进入工作台</a>
+          <a class="secondary-link" href="#finalPrompt">查看生成结果</a>
+        </div>
+        <dl class="hero-stats" aria-label="产品能力">
+          <div>
+            <dt>8</dt>
+            <dd>内置广告场景</dd>
+          </div>
+          <div>
+            <dt>3</dt>
+            <dd>输出格式</dd>
+          </div>
+          <div>
+            <dt>0</dt>
+            <dd>服务器上传</dd>
+          </div>
+        </dl>
+      </div>
+
+      <div class="hero-product" aria-label="工作台实时预览">
+        <div class="product-topbar">
+          <span class="window-dot dot-red"></span>
+          <span class="window-dot dot-yellow"></span>
+          <span class="window-dot dot-green"></span>
+          <strong>Prompt Workbench</strong>
+        </div>
+        <div class="preview-grid">
+          <div class="preview-copy">
+            <span id="tagMode">文生图</span>
+            <span id="tagRatio">16:9</span>
+            <span id="tagPreset">横版小程序福利 Banner</span>
+          </div>
+          <div class="poster-card" aria-label="活动海报案例预览">
+            <div class="poster-badges">
+              <span>广告案例</span>
+              <span>Prompt Ready</span>
+            </div>
+            <div id="posterTopline" class="poster-topline">Commercial Banner</div>
+            <div id="posterTitle" class="poster-title">新人福利</div>
+            <div id="posterPrice" class="poster-price">最高抵扣15元</div>
+            <button id="posterButton" class="poster-button" type="button">立即领取</button>
+          </div>
+          <div class="sample-card">
+            <span>输出片段</span>
+            <p>主体、场景、构图、光线、文案和负面规则会被整理成完整 Prompt。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="workspace" class="workspace" aria-label="Prompt 编辑工作台">
+      <aside class="preset-panel">
+        <div class="panel-title">
+          <span>预设中心</span>
+          <small id="presetCount">8 组</small>
+        </div>
+        <input id="presetSearch" class="search-input" type="search" placeholder="搜索预设、分类、用途、主体、场景">
+        <div id="categoryFilters" class="category-filters"></div>
+        <div id="presetList" class="preset-list"></div>
+      </aside>
+
+      <section class="editor-panel">
+        <div class="toolbar">
+          <div class="toolbar-title">
+            <p class="eyebrow">Editable Modules</p>
+            <h2 id="activeTitle">横版小程序福利 Banner</h2>
+          </div>
+          <div class="toolbar-actions">
+            <div class="mode-switch" aria-label="生成模式切换">
+              <button id="imageModeBtn" type="button" class="mode-button active">文生图</button>
+              <button id="videoModeBtn" type="button" class="mode-button">文生视频</button>
+            </div>
+            <button id="savePresetBtn" type="button" class="ghost-button">保存为我的预设</button>
+            <button id="exportBtn" type="button" class="ghost-button">导出 JSON</button>
+            <button id="importBtn" type="button" class="ghost-button">导入 JSON</button>
+            <input id="importFile" type="file" accept="application/json,.json" hidden>
+          </div>
+        </div>
+
+        <div id="formSections" class="form-sections"></div>
+
+        <section class="result-card">
+          <div class="result-head">
+            <div>
+              <p class="eyebrow">Final Prompt</p>
+              <h3>完整提示词</h3>
+            </div>
+            <div class="format-switch">
+              <button class="format-button active" type="button" data-format="structured">结构化中文</button>
+              <button class="format-button" type="button" data-format="line">一行中文</button>
+              <button class="format-button" type="button" data-format="sd">SD 分段</button>
+            </div>
+          </div>
+          <textarea id="finalPrompt" readonly spellcheck="false"></textarea>
+          <div class="result-actions">
+            <span id="copyState" class="copy-state">实时生成中</span>
+            <button id="copyFullBtn" type="button" class="primary-button">复制完整 Prompt</button>
+            <button id="copyPositiveBtn" type="button" class="ghost-dark-button">复制 Positive</button>
+            <button id="copyNegativeBtn" type="button" class="ghost-dark-button">复制 Negative</button>
+            <button id="clearBtn" type="button" class="ghost-dark-button">清空当前编辑</button>
+            <button id="resetBtn" type="button" class="ghost-dark-button">恢复当前预设</button>
+          </div>
+        </section>
+
+        <section class="module-card quality-card">
+          <div class="module-head">
+            <div>
+              <p class="eyebrow">Prompt QA</p>
+              <h3>Prompt 质量检查</h3>
+            </div>
+            <span id="qualitySummary" class="soft-label">实时检查</span>
+          </div>
+          <div id="qualityList" class="quality-list"></div>
+        </section>
+      </section>
+    </section>
+
+    <footer id="privacy" class="site-footer">
+      <div>
+        <strong>Didi Prompt Tool</strong>
+        <p>当前版本为本地静态网页，预设和自定义元素保存在浏览器本地存储，不上传服务器。</p>
+      </div>
+      <a href="#top">回到顶部</a>
+    </footer>
+  </main>
+
+  <script src="./app.js?v=20260430a"></script>
+</body>
+</html>

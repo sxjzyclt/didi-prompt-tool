@@ -1,0 +1,17 @@
+# System files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor folders
+.vscode/
+.idea/
+
+# Local logs and temporary files
+*.log
+*.tmp
+*.bak
+
+# Local automation artifacts
+.playwright-mcp/
+

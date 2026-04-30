@@ -1,0 +1,1003 @@
+const STORAGE_KEY = "promptWorkbenchState.v3";
+const USER_PRESETS_KEY = "promptWorkbenchUserPresets.v3";
+const CUSTOM_ELEMENTS_KEY = "promptWorkbenchCustomElements.v1";
+
+const categories = ["全部", "小程序广告", "电商促销", "本地生活", "游戏宣传", "旅游宣传", "短视频开屏", "科技产品", "影视感广告", "我的预设"];
+const videoLengths = ["5s", "6s", "7s", "8s", "9s", "10s", "11s", "12s", "13s", "14s", "15s"];
+const cameraMotions = ["轻微推进", "横向微移", "缓慢拉远", "固定镜头", "环绕主体"];
+const motionStrengths = ["稳定", "轻微动态", "中等动态"];
+
+const defaultVideoRule = "画面稳定，主体不变形，文字不漂移，不跳切，不闪烁，不出现多余肢体，不出现乱码，不改变商品和广告信息。";
+const defaultFontRule = "标语字体要有设计感，使用高识别度促销标题字，粗体圆角黑体或立体描边字，主标题可用渐变色、白色描边、轻微投影，按钮字要清晰有点击感，适合小程序横版Banner、开屏横版素材。";
+
+const builtInPresets = [
+  {
+    id: "mini-banner",
+    name: "横版小程序福利 Banner",
+    category: "小程序广告",
+    ratio: "16:9",
+    usage: "小程序横版Banner、开屏横版素材、活动页头图",
+    subject: "年轻用户、福利券卡片、手机小程序入口",
+    scene: "明亮城市生活场景、浅色建筑、绿植点缀",
+    action: "用户看向镜头，手持手机，展示优惠券",
+    outfit: "休闲穿搭，春季浅色服装",
+    props: "优惠券卡片、手机界面、领取按钮",
+    composition: "横版大景，右侧放主体元素，左侧预留标题区",
+    camera: "中景，居中构图，轻微广角",
+    color: "橙色、浅绿色、奶白色，高明度促销色彩",
+    lighting: "柔和日光，明亮通透",
+    style: "商业插画结合轻写实广告，互联网小程序活动Banner",
+    quality: "高清、干净、边缘清晰、广告可读性强",
+    mainTitle: "新人领6折券",
+    subTitle: "最高抵扣15元",
+    offerText: "限时福利",
+    buttonText: "立即领取",
+    slogan: "新人领6折券 最高抵扣15元；立即领取",
+    sloganRule: defaultFontRule,
+    negative: "不生成低清晰度、过度拥挤、脏乱背景、错误透视",
+    textNegative: "不要乱码，不要错别字，不要多余文字，不要文字漂移",
+    privacyNegative: "不生成品牌Logo、不生成水印、不生成二维码、不生成个人信息",
+    videoLength: "8s",
+    cameraMotion: "轻微推进",
+    motionStrength: "稳定",
+    videoRule: defaultVideoRule,
+    tags: ["Banner", "开屏", "商业广告"]
+  },
+  {
+    id: "ecommerce-coupon",
+    name: "电商大促优惠券海报",
+    category: "电商促销",
+    ratio: "16:9",
+    usage: "电商促销横版Banner、店铺活动页、商品权益图",
+    subject: "大号优惠券卡片、商品礼盒、金币、权益图标",
+    scene: "明亮促销空间，浅色渐变背景，电商货架元素",
+    action: "商品向前突出，金币轻微漂浮，优惠券居中展示",
+    outfit: "无人物，主视觉以商品和卡片为主",
+    props: "红包卡、优惠券、金币、按钮、礼盒",
+    composition: "中心卡片构图，左右商品陪衬，底部按钮区清晰",
+    camera: "正面镜头，近景，商业海报构图",
+    color: "红橙促销色，高亮金色点缀，白色留白",
+    lighting: "高对比商业光，影棚布光",
+    style: "电商促销，3D卡片，强转化广告视觉",
+    quality: "质感高级、阴影柔和、按钮有点击感",
+    mainTitle: "限时领券",
+    subTitle: "最高立减15元",
+    offerText: "新人专享",
+    buttonText: "马上抢",
+    slogan: "限时领券 最高立减15元；马上抢",
+    sloganRule: defaultFontRule,
+    negative: "不生成真实人民币、不生成复杂票据、不生成杂乱商品",
+    textNegative: "不要乱码，不要错字，不要价格错误，不要无关文字",
+    privacyNegative: "不生成品牌Logo、不生成水印、不生成二维码",
+    videoLength: "8s",
+    cameraMotion: "固定镜头",
+    motionStrength: "轻微动态",
+    videoRule: defaultVideoRule,
+    tags: ["促销", "优惠券", "Banner"]
+  },
+  {
+    id: "local-life",
+    name: "本地生活门店福利",
+    category: "本地生活",
+    ratio: "4:5",
+    usage: "门店团购、到店消费、小程序活动海报",
+    subject: "白领用户、门店招牌、福利券、手机团购页面",
+    scene: "商场门口，本地生活街区，门店灯箱和橱窗",
+    action: "用户手持手机，点击按钮，展示优惠券",
+    outfit: "商务外套，日常通勤穿搭",
+    props: "手机、优惠券、门店招牌、商品套餐卡",
+    composition: "人物在右侧，门店和优惠信息在左侧，按钮位于下方",
+    camera: "中景，轻微低角度，空间有纵深",
+    color: "暖橙、米白、深咖，生活感强",
+    lighting: "柔和日光，门店暖光补充",
+    style: "轻写实商业广告，本地生活运营海报",
+    quality: "真实可信，干净高级，信息层级清楚",
+    mainTitle: "附近好店福利",
+    subTitle: "新人最高省15元",
+    offerText: "到店可用",
+    buttonText: "立即查看",
+    slogan: "附近好店福利 新人最高省15元；立即查看",
+    sloganRule: defaultFontRule,
+    negative: "不生成脏乱街道、不生成拥挤人群、不生成过暗画面",
+    textNegative: "不要乱码，不要错字，不要多余招牌字",
+    privacyNegative: "不生成真实门店Logo、不生成真实地址、不生成二维码",
+    videoLength: "8s",
+    cameraMotion: "横向微移",
+    motionStrength: "轻微动态",
+    videoRule: defaultVideoRule,
+    tags: ["本地生活", "门店", "商业广告"]
+  },
+  {
+    id: "game-launch",
+    name: "游戏新品预约宣传",
+    category: "游戏宣传",
+    ratio: "16:9",
+    usage: "游戏预约Banner、信息流头图、活动首屏",
+    subject: "游戏角色、能量武器、预约奖励卡片、发光按钮",
+    scene: "幻想游戏世界，城堡废墟，能量光效背景",
+    action: "角色看向镜头，持武器站立，披风轻微飘动",
+    outfit: "游戏角色服装，金属护甲，发光配饰",
+    props: "武器、奖励宝箱、预约券、能量粒子",
+    composition: "主角居中偏右，左侧预留标题，底部奖励和按钮",
+    camera: "低角度，电影感镜头，中近景",
+    color: "蓝紫能量色、金色高光、暗部高级灰",
+    lighting: "高对比商业光，边缘轮廓光",
+    style: "电影海报，游戏宣传视觉，史诗感",
+    quality: "高细节、角色清晰、光效克制、广告信息醒目",
+    mainTitle: "新服预约开启",
+    subTitle: "登录领限定奖励",
+    offerText: "预约礼包",
+    buttonText: "立即预约",
+    slogan: "新服预约开启 登录领限定奖励；立即预约",
+    sloganRule: defaultFontRule,
+    negative: "不生成低质量角色、不生成肢体错乱、不生成廉价特效",
+    textNegative: "不要乱码，不要错别字，不要文字遮挡角色",
+    privacyNegative: "不生成未授权Logo、不生成水印、不生成二维码",
+    videoLength: "8s",
+    cameraMotion: "环绕主体",
+    motionStrength: "中等动态",
+    videoRule: defaultVideoRule,
+    tags: ["游戏", "开屏", "视频"]
+  },
+  {
+    id: "travel-spring",
+    name: "春季旅游目的地海报",
+    category: "旅游宣传",
+    ratio: "16:9",
+    usage: "旅游小程序Banner、目的地专题、开屏横版素材",
+    subject: "旅行者、行李箱、目的地风景、优惠权益卡",
+    scene: "旅游风景区，山水湖泊，春季花海，蓝天白云",
+    action: "旅行者向前走，回头微笑，展示手机行程",
+    outfit: "旅行穿搭，浅色外套，舒适背包",
+    props: "行李箱、手机、门票卡片、旅行地图",
+    composition: "横版大景，远处风景开阔，人物在前景，标题在左上",
+    camera: "广角，中远景，空气透视",
+    color: "天空蓝、草木绿、暖橙点缀，清新春日",
+    lighting: "清晨阳光，明亮通透",
+    style: "清新春日商业插画，轻写实旅游广告",
+    quality: "通透、高级、风景层次清楚、人物不抢画面",
+    mainTitle: "春日出游福利",
+    subTitle: "热门目的地限时优惠",
+    offerText: "最高省15元",
+    buttonText: "去看看",
+    slogan: "春日出游福利 热门目的地限时优惠；去看看",
+    sloganRule: defaultFontRule,
+    negative: "不生成阴雨天气、不生成脏乱游客、不生成低清晰度风景",
+    textNegative: "不要乱码，不要错误地名，不要多余文字",
+    privacyNegative: "不生成真实旅行社Logo、不生成二维码、不生成水印",
+    videoLength: "8s",
+    cameraMotion: "缓慢拉远",
+    motionStrength: "轻微动态",
+    videoRule: defaultVideoRule,
+    tags: ["旅游", "Banner", "清新"]
+  },
+  {
+    id: "short-video-splash",
+    name: "短视频 App 开屏活动",
+    category: "短视频开屏",
+    ratio: "9:16",
+    usage: "短视频开屏、竖版活动页、信息流首帧",
+    subject: "年轻创作者、手机短视频界面、活动奖励卡",
+    scene: "霓虹城市夜景，直播间光效，动感背景",
+    action: "创作者看向镜头，手持手机，点击按钮",
+    outfit: "潮流休闲穿搭，亮色配饰",
+    props: "手机、播放按钮、奖励卡片、点赞图标",
+    composition: "竖版中心人物，上方标题，下方按钮和权益说明",
+    camera: "近景，居中构图，轻微低角度",
+    color: "蓝紫霓虹、橙色按钮、高饱和但不刺眼",
+    lighting: "霓虹灯光，高级灰光影",
+    style: "短视频开屏广告，年轻化动态海报",
+    quality: "清晰、潮流、强视觉冲击、文字区稳定",
+    mainTitle: "新人创作福利",
+    subTitle: "开通即领活动权益",
+    offerText: "限时奖励",
+    buttonText: "立即参与",
+    slogan: "新人创作福利 开通即领活动权益；立即参与",
+    sloganRule: defaultFontRule,
+    negative: "不生成杂乱图标、不生成低俗元素、不生成画面噪点",
+    textNegative: "不要乱码，不要文字漂移，不要过多弹幕字",
+    privacyNegative: "不生成真实平台Logo、不生成水印、不生成二维码",
+    videoLength: "8s",
+    cameraMotion: "轻微推进",
+    motionStrength: "中等动态",
+    videoRule: defaultVideoRule,
+    tags: ["开屏", "视频", "潮流"]
+  },
+  {
+    id: "tech-product",
+    name: "科技产品发布 Banner",
+    category: "科技产品",
+    ratio: "16:9",
+    usage: "科技产品发布页、官网Banner、小程序新品首屏",
+    subject: "智能硬件产品、透明玻璃卡片、功能卖点模块",
+    scene: "科技展厅，蓝光空间，几何背景",
+    action: "产品悬浮展示，功能模块环绕产品",
+    outfit: "无人物，产品为主体",
+    props: "产品渲染、发光线条、功能图标、按钮",
+    composition: "产品居中偏右，左侧标题和卖点，底部按钮",
+    camera: "近景，长焦压缩，产品广告镜头",
+    color: "深蓝、冰蓝、银白，高级科技感",
+    lighting: "科技蓝光，边缘轮廓光，影棚布光",
+    style: "科技产品广告，未来感，干净高级",
+    quality: "高精度产品细节、金属质感、玻璃拟态、无噪点",
+    mainTitle: "新品体验升级",
+    subTitle: "智能功能限时开放",
+    offerText: "预约享权益",
+    buttonText: "立即预约",
+    slogan: "新品体验升级 智能功能限时开放；立即预约",
+    sloganRule: defaultFontRule,
+    negative: "不生成廉价塑料质感、不生成变形产品、不生成杂乱线条",
+    textNegative: "不要乱码，不要错误参数，不要文字挤压",
+    privacyNegative: "不生成真实品牌Logo、不生成水印、不生成二维码",
+    videoLength: "8s",
+    cameraMotion: "环绕主体",
+    motionStrength: "轻微动态",
+    videoRule: defaultVideoRule,
+    tags: ["科技", "Banner", "商业广告"]
+  },
+  {
+    id: "cinematic-ad",
+    name: "影视感品牌广告",
+    category: "影视感广告",
+    ratio: "21:9",
+    usage: "品牌广告横版主视觉、开屏横版素材、宣传短片首帧",
+    subject: "真实商业模特、品牌权益卡、城市道路或高级室内空间",
+    scene: "电影感城市夜景，高级室内光影，空间有纵深",
+    action: "模特轻微转身，看向镜头，手持手机展示权益",
+    outfit: "商务外套，高级灰穿搭，质感配饰",
+    props: "手机、权益卡片、柔和光斑、按钮区域",
+    composition: "宽银幕构图，人物在三分线，标题区留白充足",
+    camera: "电影感镜头，长焦压缩，中近景",
+    color: "高级灰、暖金高光、深色背景、克制橙色按钮",
+    lighting: "高级灰光影，侧逆光，轮廓光",
+    style: "电影海报，轻写实广告，高端品牌质感",
+    quality: "肤色自然、质感高级、背景虚化、广告文案清晰",
+    mainTitle: "专属权益已开启",
+    subTitle: "限时领取新人福利",
+    offerText: "最高抵扣15元",
+    buttonText: "立即领取",
+    slogan: "专属权益已开启 限时领取新人福利；立即领取",
+    sloganRule: defaultFontRule,
+    negative: "不生成廉价棚拍感、不生成过曝、不生成杂乱背景",
+    textNegative: "不要乱码，不要错字，不要文字贴脸",
+    privacyNegative: "不生成真实品牌Logo、不生成水印、不生成个人信息",
+    videoLength: "8s",
+    cameraMotion: "轻微推进",
+    motionStrength: "稳定",
+    videoRule: defaultVideoRule,
+    tags: ["影视感", "品牌", "视频"]
+  }
+];
+
+const sections = [
+  {
+    title: "基础设定",
+    fields: [
+      { key: "name", label: "画面类型 / 预设名称", type: "input" },
+      { key: "ratio", label: "画面比例", type: "select", options: ["16:9", "9:16", "1:1", "4:5", "3:4", "21:9"] }
+    ]
+  },
+  {
+    title: "画面内容",
+    fields: [
+      { key: "subject", label: "主体", type: "textarea" },
+      { key: "scene", label: "场景", type: "textarea" },
+      { key: "action", label: "动作 / 姿态", type: "textarea" },
+      { key: "outfit", label: "服装", type: "textarea" },
+      { key: "props", label: "道具", type: "textarea" },
+      { key: "composition", label: "构图", type: "textarea" },
+      { key: "camera", label: "镜头", type: "textarea", wide: true }
+    ]
+  },
+  {
+    title: "视觉风格",
+    fields: [
+      { key: "style", label: "视觉风格", type: "textarea" },
+      { key: "color", label: "光线 / 色彩", type: "textarea" },
+      { key: "lighting", label: "光线细节", type: "textarea" },
+      { key: "quality", label: "画质细节", type: "textarea" },
+      { key: "sloganRule", label: "字体 / 标语规则", type: "textarea", wide: true }
+    ]
+  },
+  {
+    title: "广告文案",
+    fields: [
+      { key: "mainTitle", label: "主标题", type: "input" },
+      { key: "subTitle", label: "副标题", type: "input" },
+      { key: "offerText", label: "价格 / 优惠信息", type: "input" },
+      { key: "buttonText", label: "按钮文案", type: "input" },
+      { key: "slogan", label: "完整标语", type: "textarea", wide: true }
+    ]
+  },
+  {
+    title: "负面规则",
+    fields: [
+      { key: "negative", label: "负面提示词", type: "textarea" },
+      { key: "textNegative", label: "文字生成限制", type: "textarea" },
+      { key: "privacyNegative", label: "品牌 / 隐私限制", type: "textarea", wide: true }
+    ]
+  },
+  {
+    title: "文生视频专属设置",
+    videoOnly: true,
+    fields: [
+      { key: "videoLength", label: "视频长度", type: "select", options: videoLengths },
+      { key: "cameraMotion", label: "镜头运动", type: "select", options: cameraMotions },
+      { key: "motionStrength", label: "动态强度", type: "select", options: motionStrengths },
+      { key: "videoRule", label: "视频限制规则", type: "textarea", wide: true }
+    ]
+  }
+];
+
+const elementGroups = [
+  { title: "人物", field: "subject", area: "content", items: ["年轻情侣", "白领用户", "外卖骑手", "旅行者", "游戏角色", "3D卡通人物", "真实商业模特", "年轻创作者", "商务人士", "科技产品体验者"] },
+  { title: "场景", field: "scene", area: "content", items: ["城市街区", "商场门口", "春季街道", "夜景霓虹", "科技展厅", "游戏世界", "旅游风景区", "家庭客厅", "门店入口", "未来城市"] },
+  { title: "动作", field: "action", area: "content", items: ["向前走", "看向镜头", "手持手机", "点击按钮", "展示优惠券", "奔跑", "轻微转身", "开心互动", "打开礼盒", "展示产品"] },
+  { title: "服装", field: "outfit", area: "content", items: ["休闲穿搭", "商务外套", "运动服", "旅行穿搭", "科技感服装", "游戏角色服装", "春季浅色服装", "高级灰穿搭", "潮流穿搭", "品牌广告穿搭"] },
+  { title: "道具", field: "props", area: "content", items: ["优惠券", "手机界面", "红包卡", "商品礼盒", "行李箱", "游戏武器", "奖励宝箱", "功能图标", "权益卡片", "发光按钮", "金币", "地图卡片"] },
+  { title: "镜头", field: "camera", area: "content", items: ["广角", "中景", "近景", "俯拍", "低角度", "电影感镜头", "长焦压缩", "居中构图", "三分法构图", "商业广告镜头"] },
+  { title: "风格", field: "style", area: "style", items: ["商业插画", "3D卡通", "轻写实广告", "电影海报", "电商促销", "科技蓝光", "国潮插画", "清新春日", "高端品牌广告", "游戏宣传视觉"] },
+  { title: "光线", field: "lighting", area: "style", items: ["柔和日光", "清晨阳光", "暖色夕阳", "霓虹灯光", "影棚布光", "高级灰光影", "明亮通透", "高对比商业光", "边缘轮廓光", "玻璃反射光"] },
+  { title: "色彩", field: "color", area: "style", items: ["暖橙色", "科技蓝", "蓝紫霓虹", "清新绿色", "高级灰", "红橙促销", "天空蓝", "金色高光", "奶白色", "银白色"] },
+  { title: "画质", field: "quality", area: "style", items: ["高清", "干净背景", "边缘清晰", "电影质感", "商业广告质感", "高级光影", "无噪点", "细节丰富", "主体清楚", "文字区域稳定"] }
+];
+
+let myPresets = loadJson(USER_PRESETS_KEY, []);
+let customElements = loadJson(CUSTOM_ELEMENTS_KEY, []);
+let allPresets = [...builtInPresets, ...myPresets];
+let current = clone(allPresets[0]);
+let activePresetId = current.id;
+let mode = "image";
+let activeCategory = "全部";
+let outputFormat = "structured";
+
+const $ = (selector) => document.querySelector(selector);
+const presetList = $("#presetList");
+const categoryFilters = $("#categoryFilters");
+const presetSearch = $("#presetSearch");
+const formSections = $("#formSections");
+const finalPrompt = $("#finalPrompt");
+const copyState = $("#copyState");
+
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function loadJson(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function saveUserPresets() {
+  localStorage.setItem(USER_PRESETS_KEY, JSON.stringify(myPresets));
+  allPresets = [...builtInPresets, ...myPresets];
+}
+
+function saveCustomElements() {
+  localStorage.setItem(CUSTOM_ELEMENTS_KEY, JSON.stringify(customElements));
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ current, activePresetId, mode, activeCategory, outputFormat }));
+}
+
+function restoreState() {
+  const state = loadJson(STORAGE_KEY, null);
+  if (!state || !state.current) return;
+  current = { ...createEmptyPreset(), ...state.current };
+  activePresetId = state.activePresetId || current.id;
+  mode = state.mode || "image";
+  activeCategory = state.activeCategory || "全部";
+  outputFormat = state.outputFormat || "structured";
+}
+
+function createEmptyPreset() {
+  return {
+    id: `draft-${Date.now()}`,
+    name: "",
+    category: "我的预设",
+    ratio: "16:9",
+    usage: "",
+    subject: "",
+    scene: "",
+    action: "",
+    outfit: "",
+    props: "",
+    composition: "",
+    camera: "",
+    color: "",
+    lighting: "",
+    style: "",
+    quality: "",
+    mainTitle: "",
+    subTitle: "",
+    offerText: "",
+    buttonText: "",
+    slogan: "",
+    sloganRule: defaultFontRule,
+    negative: "",
+    textNegative: "不要乱码，不要错别字，不要文字漂移",
+    privacyNegative: "不生成品牌Logo、不生成水印、不生成二维码、不生成个人信息",
+    videoLength: "8s",
+    cameraMotion: "轻微推进",
+    motionStrength: "稳定",
+    videoRule: defaultVideoRule,
+    tags: ["自定义"]
+  };
+}
+
+function renderAll() {
+  renderMode();
+  renderCategories();
+  renderPresetList();
+  renderForm();
+  renderFormatButtons();
+  updatePrompt();
+}
+
+function renderMode() {
+  const isVideo = mode === "video";
+  document.body.classList.toggle("mode-image", !isVideo);
+  document.body.classList.toggle("mode-video", isVideo);
+  $("#imageModeBtn").classList.toggle("active", !isVideo);
+  $("#videoModeBtn").classList.toggle("active", isVideo);
+  $("#tagMode").textContent = isVideo ? "文生视频" : "文生图";
+  $("#tagRatio").textContent = current.ratio || "未设比例";
+  $("#tagPreset").textContent = current.name || "未命名预设";
+  $("#activeTitle").textContent = current.name || "未命名预设";
+  $("#heroSubhead").textContent = isVideo
+    ? "当前模式适合整理开屏短视频、动态 Banner 和活动转化视频的镜头、文案与稳定性规则。"
+    : "当前模式适合整理小程序横版 Banner、开屏素材、活动页主视觉和电商促销海报的画面提示词。";
+  $("#posterTopline").textContent = isVideo ? "AI Video Preview" : "Commercial Banner";
+  $("#posterTitle").textContent = isVideo ? "视频创意" : (current.mainTitle || "新人福利");
+  $("#posterPrice").textContent = isVideo ? "动态镜头 · 商业转化" : (current.subTitle || current.offerText || "最高抵扣15元");
+  $("#posterButton").textContent = isVideo ? "生成视频Prompt" : (current.buttonText || "立即领取");
+}
+
+function renderCategories() {
+  categoryFilters.innerHTML = categories.map((category) =>
+    `<button class="filter-button ${category === activeCategory ? "active" : ""}" type="button" data-category="${category}">${category}</button>`
+  ).join("");
+}
+
+function getFilteredPresets() {
+  const keyword = presetSearch.value.trim().toLowerCase();
+  return allPresets.filter((preset) => {
+    const matchCategory = activeCategory === "全部" || preset.category === activeCategory;
+    const blob = [preset.name, preset.category, preset.usage, preset.subject, preset.scene].join(" ").toLowerCase();
+    return matchCategory && (!keyword || blob.includes(keyword));
+  });
+}
+
+function renderPresetList() {
+  const filtered = getFilteredPresets();
+  $("#presetCount").textContent = `${filtered.length} 组`;
+  presetList.innerHTML = filtered.map((preset, index) => {
+    const isMine = preset.category === "我的预设";
+    const tags = [preset.category, preset.ratio, ...(preset.tags || [])].slice(0, 4);
+    return `
+      <button class="preset-button ${preset.id === activePresetId ? "active" : ""}" type="button" data-id="${preset.id}">
+        <div class="preset-card-top">
+          <span class="preset-index">${String(index + 1).padStart(2, "0")}</span>
+          <strong>${escapeHtml(preset.name)}</strong>
+          ${isMine ? `<span class="delete-preset" data-delete-id="${preset.id}">删除</span>` : ""}
+        </div>
+        <p>${escapeHtml(preset.usage || "")}</p>
+        <div class="preset-tags">${tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}</div>
+      </button>
+    `;
+  }).join("") || `<div class="quality-item status-warn"><span class="dot"></span>没有匹配的预设</div>`;
+}
+
+function renderForm() {
+  formSections.innerHTML = sections.map((section) => {
+    const hidden = section.videoOnly && mode !== "video";
+    const area = section.title === "画面内容" ? "content" : section.title === "视觉风格" ? "style" : "";
+    const index = sections.indexOf(section) + 1;
+    return `
+      <section class="module-card ${hidden ? "hidden" : ""}">
+        <div class="module-head">
+          <div class="module-title"><span class="module-index">${String(index).padStart(2, "0")}</span><div><p class="eyebrow">Module</p><h3>${section.title}</h3></div></div>
+          ${section.title === "基础设定" ? `<span class="soft-label">${mode === "video" ? "文生视频" : "文生图"}</span>` : ""}
+        </div>
+        <div class="field-grid">
+          ${section.fields.map(renderField).join("")}
+        </div>
+        ${area ? renderInlineElementLibrary(area) : ""}
+      </section>
+    `;
+  }).join("");
+}
+
+function renderField(field) {
+  const value = current[field.key] ?? "";
+  const wide = field.wide ? "wide" : "";
+  if (field.type === "select") {
+    return `
+      <div class="field ${wide}">
+        <label for="${field.key}">${field.label}</label>
+        <select id="${field.key}" data-field="${field.key}">
+          ${field.options.map((option) => `<option value="${escapeHtml(option)}" ${String(value) === option ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
+        </select>
+      </div>
+    `;
+  }
+  if (field.type === "input") {
+    return `
+      <div class="field ${wide}">
+        <label for="${field.key}">${field.label}</label>
+        <input id="${field.key}" data-field="${field.key}" value="${escapeHtml(value)}">
+      </div>
+    `;
+  }
+  return `
+    <div class="field ${wide}">
+      <label for="${field.key}">${field.label}</label>
+      <textarea id="${field.key}" data-field="${field.key}">${escapeHtml(value)}</textarea>
+    </div>
+  `;
+}
+
+function renderInlineElementLibrary(area) {
+  const title = area === "content" ? "画面内容提示词库" : "视觉风格提示词库";
+  const groups = elementGroups.filter((group) => group.area === area);
+  return `
+    <div class="inline-element-library" data-library-area="${area}">
+      <h4>${title}</h4>
+      <div class="element-library">
+        ${groups.map(renderElementGroup).join("")}
+      </div>
+      ${area === "style" ? renderCustomElementControls() : ""}
+    </div>
+  `;
+}
+
+function renderElementGroup(group) {
+  const customForGroup = customElements.filter((item) => item.title === group.title);
+  const builtInButtons = group.items.map((item) => renderElementButton(group, item, false)).join("");
+  const customButtons = customForGroup.map((item) => renderElementButton(item, item.value, true)).join("");
+  return `
+    <div class="element-group">
+      <h4>${group.title}</h4>
+      <div class="element-buttons">
+        ${builtInButtons}${customButtons}
+      </div>
+    </div>
+  `;
+}
+
+function renderElementButton(group, value, custom) {
+  const active = fieldContainsValue(group.field, value);
+  return `
+    <div class="element-chip ${active ? "active" : ""} ${custom ? "custom-element-chip" : ""}" data-target="${group.field}" data-value="${escapeHtml(value)}">
+      <button class="chip-action chip-add" type="button" data-action="add-element" title="添加">+</button>
+      <span class="chip-label" data-action="add-element">${escapeHtml(value)}</span>
+      <button class="chip-action chip-remove" type="button" data-action="remove-element" title="从当前字段移除">−</button>
+      ${custom ? `<button class="chip-action chip-delete-custom" type="button" data-custom-delete="${group.id}" title="从元素库删除">×</button>` : ""}
+    </div>
+  `;
+}
+
+function fieldContainsValue(field, value) {
+  const parts = String(current[field] || "")
+    .split(/[、,，]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return parts.includes(value);
+}
+
+function renderCustomElementControls() {
+  return `
+    <div class="custom-element">
+      <input id="customElementInput" type="text" placeholder="请输入自定义元素">
+      <select id="customElementTarget">
+        ${elementGroups.map((group) => `<option value="${group.title}">${group.title}</option>`).join("")}
+      </select>
+      <button id="addCustomElementBtn" type="button" class="primary-button">添加到元素库</button>
+    </div>
+  `;
+}
+
+function renderFormatButtons() {
+  document.querySelectorAll(".format-button").forEach((button) => {
+    button.classList.toggle("active", button.dataset.format === outputFormat);
+  });
+}
+
+function appendToField(field, value) {
+  const text = value.trim();
+  if (!text) return;
+  const oldValue = String(current[field] || "").trim();
+  const parts = oldValue.split(/[、,，]/).map((item) => item.trim()).filter(Boolean);
+  if (parts.includes(text)) {
+    copyState.textContent = "当前字段已包含这个元素";
+    return;
+  }
+  current[field] = oldValue ? `${oldValue}、${text}` : text;
+  renderForm();
+  updatePrompt();
+  saveState();
+  copyState.textContent = "已添加元素";
+}
+
+function removeFromField(field, value) {
+  const text = value.trim();
+  if (!text) return;
+
+  const oldValue = String(current[field] || "").trim();
+  if (!oldValue) {
+    copyState.textContent = "当前字段没有这个元素";
+    return;
+  }
+
+  const parts = oldValue
+    .split(/[、,，]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  const nextParts = parts.filter((item) => item !== text);
+
+  if (nextParts.length === parts.length) {
+    copyState.textContent = "当前字段没有这个元素";
+    return;
+  }
+
+  current[field] = nextParts.join("、");
+  renderForm();
+  updatePrompt();
+  saveState();
+  copyState.textContent = "已移除元素";
+}
+
+function addCustomElement() {
+  const input = $("#customElementInput");
+  const target = $("#customElementTarget");
+  if (!input || !target) return;
+  const value = input.value.trim();
+  if (!value) return;
+  const group = elementGroups.find((item) => item.title === target.value);
+  if (!group) return;
+  const existsBuiltIn = group.items.includes(value);
+  const existsCustom = customElements.some((item) => item.title === group.title && item.value === value);
+  if (!existsBuiltIn && !existsCustom) {
+    customElements.push({
+      id: `custom-${Date.now()}`,
+      title: group.title,
+      field: group.field,
+      area: group.area,
+      value
+    });
+    saveCustomElements();
+    renderForm();
+  }
+  input.value = "";
+}
+
+function deleteCustomElement(id) {
+  customElements = customElements.filter((item) => item.id !== id);
+  saveCustomElements();
+  renderForm();
+  updatePrompt();
+}
+
+function buildPositiveLine() {
+  const modeParts = mode === "video"
+    ? [`生成模式：文生视频`, `视频长度：${current.videoLength}`, `镜头运动：${current.cameraMotion}`, `动态强度：${current.motionStrength}`]
+    : [`生成模式：文生图`];
+  return [
+    ...modeParts,
+    `画面类型：${current.name}`,
+    `比例：${current.ratio}`,
+    `主体：${current.subject}`,
+    `场景：${current.scene}`,
+    `动作姿态：${current.action}`,
+    `服装道具：${[current.outfit, current.props].filter(Boolean).join("、")}`,
+    `构图镜头：${[current.composition, current.camera].filter(Boolean).join("，")}`,
+    `视觉风格：${current.style}`,
+    `光线色彩：${[current.color, current.lighting].filter(Boolean).join("，")}`,
+    `画质细节：${current.quality}`,
+    `广告文案：主标题 ${current.mainTitle}，副标题 ${current.subTitle}，优惠 ${current.offerText}，按钮 ${current.buttonText}，完整标语 ${current.slogan}`,
+    `字体标语规则：${current.sloganRule}`,
+    `投放用途：${current.usage}`,
+    mode === "video" ? `视频限制：${current.videoRule}` : ""
+  ].filter((item) => !item.endsWith("：") && item.trim()).join("，");
+}
+
+function buildNegativeLine() {
+  return [current.negative, current.textNegative, current.privacyNegative, mode === "video" ? current.videoRule : ""]
+    .filter(Boolean)
+    .join("，");
+}
+
+function buildStructuredPrompt() {
+  const lines = [
+    `生成模式：${mode === "video" ? "文生视频" : "文生图"}`,
+    `画面类型：${current.name}`,
+    `比例：${current.ratio}`,
+    "",
+    "【主体】",
+    current.subject || "未填写",
+    "",
+    "【场景】",
+    current.scene || "未填写",
+    "",
+    "【动作 / 服装 / 道具】",
+    `动作：${current.action || "未填写"}`,
+    `服装：${current.outfit || "未填写"}`,
+    `道具：${current.props || "未填写"}`,
+    "",
+    "【构图/镜头】",
+    `${current.composition || "未填写"}${current.camera ? `，${current.camera}` : ""}`,
+    "",
+    "【广告文案】",
+    `主标题：${current.mainTitle || "未填写"}`,
+    `副标题：${current.subTitle || "未填写"}`,
+    `价格/优惠：${current.offerText || "未填写"}`,
+    `按钮：${current.buttonText || "未填写"}`,
+    `完整标语：${current.slogan || "未填写"}`,
+    "",
+    "【视觉风格】",
+    `${current.style || "未填写"}，${current.color || ""}，${current.lighting || ""}，${current.quality || ""}`,
+    "",
+    "【字体/标语规则】",
+    current.sloganRule || "未填写",
+    "",
+    "【投放用途】",
+    current.usage || "未填写"
+  ];
+  if (mode === "video") {
+    lines.push("", "【视频设置】", `视频长度：${current.videoLength}`, `镜头运动：${current.cameraMotion}`, `动态强度：${current.motionStrength}`, `视频限制：${current.videoRule}`);
+  }
+  lines.push("", "【负面规则】", buildNegativeLine() || "未填写");
+  return lines.join("\n");
+}
+
+function buildSdPrompt() {
+  return `Positive Prompt:\n${buildPositiveLine()}\n\nNegative Prompt:\n${buildNegativeLine()}`;
+}
+
+function buildPrompt() {
+  if (outputFormat === "line") return buildPositiveLine() + `，负面规则：${buildNegativeLine()}`;
+  if (outputFormat === "sd") return buildSdPrompt();
+  return buildStructuredPrompt();
+}
+
+function updatePrompt() {
+  finalPrompt.value = buildPrompt();
+  renderMode();
+  renderQuality();
+  copyState.textContent = "已根据当前内容更新";
+  saveState();
+}
+
+function renderQuality() {
+  const negativeText = buildNegativeLine();
+  const restrictionScore = ["乱码", "水印"].filter((word) => negativeText.includes(word)).length +
+    (/(Logo|品牌)/.test(negativeText) ? 1 : 0);
+  const checks = [
+    ["是否填写主体", current.subject ? "ok" : "miss"],
+    ["是否填写场景", current.scene ? "ok" : "miss"],
+    ["是否填写风格", current.style ? "ok" : "miss"],
+    ["是否填写比例", current.ratio ? "ok" : "miss"],
+    ["是否有负面规则", negativeText ? "ok" : "miss"],
+    ["视频长度已选择", mode !== "video" ? "ok" : current.videoLength ? "ok" : "miss"],
+    ["广告图有主标题或标语", current.mainTitle || current.slogan ? "ok" : "miss"],
+    ["包含乱码/水印/Logo限制", restrictionScore === 3 ? "ok" : restrictionScore > 0 ? "warn" : "miss"]
+  ];
+  const okCount = checks.filter(([, status]) => status === "ok").length;
+  $("#qualitySummary").textContent = `${okCount}/${checks.length} 项通过`;
+  $("#qualityList").innerHTML = checks.map(([label, status]) => {
+    const className = status === "ok" ? "status-ok" : status === "warn" ? "status-warn" : "status-miss";
+    const text = status === "ok" ? "完整" : status === "warn" ? "建议补充" : "缺失";
+    return `<div class="quality-item ${className}"><span class="dot"></span><span>${label}：${text}</span></div>`;
+  }).join("");
+}
+
+function selectPreset(id) {
+  const preset = allPresets.find((item) => item.id === id);
+  if (!preset) return;
+  current = { ...createEmptyPreset(), ...clone(preset) };
+  activePresetId = id;
+  renderPresetList();
+  renderForm();
+  updatePrompt();
+}
+
+async function copyText(text, message) {
+  const temp = document.createElement("textarea");
+  temp.value = text;
+  temp.setAttribute("readonly", "");
+  temp.style.position = "fixed";
+  temp.style.left = "-9999px";
+  document.body.appendChild(temp);
+  temp.select();
+  document.execCommand("copy");
+  document.body.removeChild(temp);
+  copyState.textContent = message;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).catch(() => {});
+  }
+}
+
+function saveAsMyPreset() {
+  const saved = { ...clone(current), id: `mine-${Date.now()}`, category: "我的预设", tags: ["我的预设", mode === "video" ? "视频" : "图片"] };
+  saved.name = saved.name || `我的预设 ${myPresets.length + 1}`;
+  myPresets.push(saved);
+  saveUserPresets();
+  activeCategory = "我的预设";
+  activePresetId = saved.id;
+  current = clone(saved);
+  renderAll();
+  copyState.textContent = "已保存到我的预设";
+}
+
+function deleteMyPreset(id) {
+  myPresets = myPresets.filter((preset) => preset.id !== id);
+  saveUserPresets();
+  if (activePresetId === id) {
+    current = clone(builtInPresets[0]);
+    activePresetId = current.id;
+  }
+  renderAll();
+}
+
+function exportJson() {
+  const blob = new Blob([JSON.stringify(myPresets, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "我的Prompt预设.json";
+  a.click();
+  URL.revokeObjectURL(url);
+  copyState.textContent = "已导出 JSON";
+}
+
+function importJson(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const parsed = JSON.parse(reader.result);
+      const list = Array.isArray(parsed) ? parsed : parsed.myPresets;
+      if (!Array.isArray(list)) throw new Error("JSON格式不正确");
+      const imported = list.map((item, index) => ({
+        ...createEmptyPreset(),
+        ...item,
+        id: `mine-import-${Date.now()}-${index}`,
+        category: "我的预设",
+        tags: item.tags || ["导入"]
+      }));
+      myPresets.push(...imported);
+      saveUserPresets();
+      activeCategory = "我的预设";
+      renderAll();
+      copyState.textContent = `已导入 ${imported.length} 个预设`;
+    } catch {
+      copyState.textContent = "导入失败：JSON格式错误";
+    }
+  };
+  reader.readAsText(file, "utf-8");
+}
+
+function clearCurrent() {
+  current = createEmptyPreset();
+  activePresetId = current.id;
+  renderForm();
+  renderPresetList();
+  updatePrompt();
+  copyState.textContent = "已清空当前编辑";
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+categoryFilters.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-category]");
+  if (!button) return;
+  activeCategory = button.dataset.category;
+  renderCategories();
+  renderPresetList();
+  saveState();
+});
+
+presetSearch.addEventListener("input", () => {
+  renderPresetList();
+});
+
+presetList.addEventListener("click", (event) => {
+  const deleteButton = event.target.closest("[data-delete-id]");
+  if (deleteButton) {
+    event.stopPropagation();
+    deleteMyPreset(deleteButton.dataset.deleteId);
+    return;
+  }
+  const card = event.target.closest("[data-id]");
+  if (card) selectPreset(card.dataset.id);
+});
+
+formSections.addEventListener("input", (event) => {
+  const key = event.target.dataset.field;
+  if (!key) return;
+  current[key] = event.target.value;
+  updatePrompt();
+});
+
+formSections.addEventListener("change", (event) => {
+  const key = event.target.dataset.field;
+  if (!key) return;
+  current[key] = event.target.value;
+  updatePrompt();
+});
+
+formSections.addEventListener("click", (event) => {
+  const deleteButton = event.target.closest("[data-custom-delete]");
+  if (deleteButton) {
+    event.stopPropagation();
+    deleteCustomElement(deleteButton.dataset.customDelete);
+    return;
+  }
+  if (event.target.closest("#addCustomElementBtn")) {
+    addCustomElement();
+    return;
+  }
+  const chip = event.target.closest(".element-chip");
+  if (!chip) return;
+
+  const field = chip.dataset.target;
+  const value = chip.dataset.value;
+  const actionButton = event.target.closest("[data-action]");
+  const action = actionButton?.dataset.action || "add-element";
+
+  if (action === "remove-element") {
+    event.stopPropagation();
+    removeFromField(field, value);
+    return;
+  }
+
+  appendToField(field, value);
+});
+
+$("#imageModeBtn").addEventListener("click", () => {
+  mode = "image";
+  renderForm();
+  updatePrompt();
+});
+
+$("#videoModeBtn").addEventListener("click", () => {
+  mode = "video";
+  renderForm();
+  updatePrompt();
+});
+
+document.querySelector(".format-switch").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-format]");
+  if (!button) return;
+  outputFormat = button.dataset.format;
+  renderFormatButtons();
+  updatePrompt();
+});
+
+$("#copyFullBtn").addEventListener("click", () => copyText(buildPrompt(), "已复制完整 Prompt"));
+$("#copyPositiveBtn").addEventListener("click", () => copyText(buildPositiveLine(), "已复制 Positive"));
+$("#copyNegativeBtn").addEventListener("click", () => copyText(buildNegativeLine(), "已复制 Negative"));
+$("#clearBtn").addEventListener("click", clearCurrent);
+$("#resetBtn").addEventListener("click", () => selectPreset(activePresetId));
+$("#savePresetBtn").addEventListener("click", saveAsMyPreset);
+$("#exportBtn").addEventListener("click", exportJson);
+$("#importBtn").addEventListener("click", () => $("#importFile").click());
+$("#importFile").addEventListener("change", (event) => {
+  const file = event.target.files?.[0];
+  if (file) importJson(file);
+  event.target.value = "";
+});
+
+restoreState();
+renderAll();

@@ -18,7 +18,9 @@ GitHub Pages 在线访问地址：
 https://sxjzyclt.github.io/didi-prompt-tool/
 ```
 
-新手操作说明见：[`新手操作指南.md`](./新手操作指南.md)
+新手操作说明见：[`guide.html`](./guide.html)
+
+Markdown 备份文档见：[`新手操作指南.md`](./新手操作指南.md)
 
 ## 发布到 GitHub
 
@@ -57,6 +59,7 @@ http://127.0.0.1:8787/
 ```text
 didi-prompt-tool/
 ├─ index.html
+├─ guide.html
 ├─ styles.css
 ├─ app.js
 ├─ favicon.svg

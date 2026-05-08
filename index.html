@@ -6,7 +6,7 @@
   <meta name="description" content="面向广告创意、活动 Banner 和短视频开屏素材的 AI Prompt 工作台。">
   <title>Didi Prompt Tool | AI 广告创意 Prompt 工作台</title>
   <link rel="icon" href="./favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./styles.css?v=20260430a">
+  <link rel="stylesheet" href="./styles.css?v=20260508a">
 </head>
 <body class="mode-image">
   <div class="ambient-bg" aria-hidden="true">
@@ -26,6 +26,7 @@
       </span>
     </a>
     <nav class="nav-links" aria-label="页面导航">
+      <a href="#guide">新手指南</a>
       <a href="#workspace">工作台</a>
       <a href="#finalPrompt">提示词</a>
       <a href="#privacy">隐私</a>
@@ -41,7 +42,7 @@
         <p id="heroSubhead" class="subhead">适合生成小程序横版 Banner、开屏素材、活动页主视觉、电商促销海报，一键组合画面内容、视觉风格和广告文案。</p>
         <div class="hero-actions">
           <a class="primary-link" href="#workspace">进入工作台</a>
-          <a class="secondary-link" href="#finalPrompt">查看生成结果</a>
+          <a class="secondary-link" href="#guide">先看新手指南</a>
         </div>
         <dl class="hero-stats" aria-label="产品能力">
           <div>
@@ -88,6 +89,65 @@
           </div>
         </div>
       </div>
+    </section>
+
+    <section id="guide" class="guide-section" aria-label="新手操作指南">
+      <div class="guide-head">
+        <div>
+          <p class="eyebrow">Beginner Guide</p>
+          <h2>第一次使用，按这 4 步走</h2>
+        </div>
+        <a class="guide-doc-link" href="./新手操作指南.md" target="_blank" rel="noreferrer">查看完整 Markdown 指南</a>
+      </div>
+
+      <div class="guide-steps">
+        <article>
+          <span>01</span>
+          <h3>选一个预设</h3>
+          <p>在左侧“预设中心”选择最接近目标的广告场景，比如电商促销、本地生活、短视频开屏。</p>
+        </article>
+        <article>
+          <span>02</span>
+          <h3>改广告内容</h3>
+          <p>优先修改主标题、副标题、优惠信息、主体和场景，让画面更贴近你的业务。</p>
+        </article>
+        <article>
+          <span>03</span>
+          <h3>检查完整度</h3>
+          <p>看底部“Prompt 质量检查”，把主体、场景、风格、比例和负面规则补齐。</p>
+        </article>
+        <article>
+          <span>04</span>
+          <h3>复制去生成</h3>
+          <p>新手默认选择“结构化中文”，点击“复制完整 Prompt”，再粘贴到 AI 绘图或 AI 视频工具里。</p>
+        </article>
+      </div>
+
+      <div class="guide-grid">
+        <div class="guide-card">
+          <h3>文生图和文生视频怎么选</h3>
+          <p><strong>文生图</strong>适合海报、Banner、封面图和活动主视觉。<strong>文生视频</strong>适合短视频、开屏动态素材和镜头运动提示词。</p>
+        </div>
+        <div class="guide-card">
+          <h3>输出格式怎么选</h3>
+          <p><strong>结构化中文</strong>最适合新手；<strong>一行中文</strong>适合单行输入框；<strong>SD 分段</strong>适合区分 Positive 和 Negative 的工具。</p>
+        </div>
+        <div class="guide-card">
+          <h3>为什么要导出 JSON</h3>
+          <p>“我的预设”保存在浏览器本地。换电脑、清浏览器缓存后可能丢失，重要模板建议定期“导出 JSON”备份。</p>
+        </div>
+      </div>
+
+      <details class="guide-faq">
+        <summary>字段不知道怎么填？点这里看简单解释</summary>
+        <div class="field-help">
+          <p><strong>主体：</strong>画面里最重要的人、物、产品或角色。</p>
+          <p><strong>场景：</strong>背景环境，比如商场门口、城市街区、科技展厅。</p>
+          <p><strong>构图：</strong>标题放哪，主体放哪，横版还是竖版。</p>
+          <p><strong>视觉风格：</strong>商业插画、3D 卡通、轻写实广告、电影海报等。</p>
+          <p><strong>负面规则：</strong>告诉 AI 不要乱码、错别字、水印、二维码、未授权 Logo。</p>
+        </div>
+      </details>
     </section>
 
     <section id="workspace" class="workspace" aria-label="Prompt 编辑工作台">
@@ -166,6 +226,6 @@
     </footer>
   </main>
 
-  <script src="./app.js?v=20260430a"></script>
+  <script src="./app.js?v=20260508a"></script>
 </body>
 </html>

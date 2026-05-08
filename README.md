@@ -12,11 +12,13 @@
 
 ## 在线访问
 
-GitHub Pages 发布后，访问地址会是：
+GitHub Pages 在线访问地址：
 
 ```text
-https://你的GitHub用户名.github.io/didi-prompt-tool/
+https://sxjzyclt.github.io/didi-prompt-tool/
 ```
+
+新手操作说明见：[`新手操作指南.md`](./新手操作指南.md)
 
 ## 发布到 GitHub
 
@@ -59,6 +61,7 @@ didi-prompt-tool/
 ├─ app.js
 ├─ favicon.svg
 ├─ publish-to-github.ps1
+├─ 新手操作指南.md
 └─ assets/
    └─ hero.png
 ```

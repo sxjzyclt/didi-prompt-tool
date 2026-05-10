@@ -346,6 +346,14 @@ let settingsPinned = false;
 let settingsHover = false;
 let presetsExpanded = false;
 let elementLibraryCollapsed = { content: true, style: true };
+let mediaState = {
+  status: "idle",
+  mode: "image",
+  prompt: "",
+  url: "",
+  mediaType: "image",
+  error: ""
+};
 
 const $ = (selector) => document.querySelector(selector);
 const quickPresetList = $("#quickPresetList");
@@ -357,6 +365,15 @@ const presetSearch = $("#presetSearch");
 const formSections = $("#formSections");
 const finalPrompt = $("#finalPrompt");
 const copyState = $("#copyState");
+const mediaPreview = $("#mediaPreview");
+const mediaTitle = $("#mediaTitle");
+const mediaModeBadge = $("#mediaModeBadge");
+const mediaHint = $("#mediaHint");
+const generateMediaBtn = $("#generateMediaBtn");
+const downloadMediaBtn = $("#downloadMediaBtn");
+
+// Put your own backend proxy URL here after the image/video model API is ready.
+const MEDIA_API_ENDPOINT = "";
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -400,7 +417,7 @@ function restoreState() {
   activePresetId = state.activePresetId || current.id;
   mode = state.mode || "image";
   activeCategory = state.activeCategory || "全部";
-  outputFormat = ["full", "content", "copy", "style", "video"].includes(state.outputFormat) ? state.outputFormat : "full";
+  outputFormat = ["full", "video"].includes(state.outputFormat) ? state.outputFormat : "full";
   settingsPinned = typeof state.settingsPinned === "boolean" ? state.settingsPinned : false;
   presetsExpanded = false;
   elementLibraryCollapsed = {
@@ -473,6 +490,7 @@ function renderMode() {
     outputFormat = "full";
     renderFormatButtons();
   }
+  renderMediaPanel();
 }
 
 function renderDrawerState() {
@@ -780,7 +798,7 @@ function renderCustomElementControls() {
 }
 
 function renderFormatButtons() {
-  document.querySelectorAll(".prompt-tab").forEach((button) => {
+  document.querySelectorAll(".prompt-tab[data-format]").forEach((button) => {
     button.classList.toggle("active", button.dataset.format === outputFormat);
   });
   const titleMap = {
@@ -790,7 +808,7 @@ function renderFormatButtons() {
     style: "风格规则",
     video: "视频设置"
   };
-  const resultTitle = document.querySelector(".result-card h3");
+  const resultTitle = document.querySelector(".prompt-result-title");
   if (resultTitle) resultTitle.textContent = titleMap[outputFormat] || "完整提示词";
 }
 
@@ -979,7 +997,7 @@ function renderPromptHtml(prompt) {
   return String(prompt || "")
     .split("\n")
     .map((line) => {
-      if (!line.trim()) return "<br>";
+      if (!line.trim()) return `<span class="prompt-gap" aria-hidden="true"></span>`;
       const match = line.match(/^【(.+)】$/);
       if (match) {
         sectionIndex += 1;
@@ -988,7 +1006,7 @@ function renderPromptHtml(prompt) {
       }
       return `<span class="prompt-line">${escapeHtml(line)}</span>`;
     })
-    .join("<br>");
+    .join("");
 }
 
 function updatePrompt() {
@@ -1004,6 +1022,164 @@ function updatePrompt() {
   renderQuality();
   copyState.textContent = "已根据当前内容更新";
   saveState();
+}
+
+function resetMediaState(nextMode = mode) {
+  mediaState = {
+    status: "idle",
+    mode: nextMode,
+    prompt: "",
+    url: "",
+    mediaType: nextMode === "video" ? "video" : "image",
+    error: ""
+  };
+}
+
+function renderMediaPanel() {
+  if (!mediaPreview) return;
+  const isVideo = mode === "video";
+  const modeLabel = isVideo ? "文生视频" : "文生图";
+  const mediaLabel = isVideo ? "视频" : "图片";
+  const actionLabel = isVideo ? "生成视频" : "生成图片";
+  const promptChanged = mediaState.status === "success" && mediaState.prompt && mediaState.prompt !== buildFullPrompt();
+
+  mediaTitle.textContent = `${mediaLabel}生成预览`;
+  mediaModeBadge.textContent = modeLabel;
+  generateMediaBtn.textContent = actionLabel;
+  downloadMediaBtn.disabled = mediaState.status !== "success" || !mediaState.url;
+  mediaPreview.className = `media-preview status-${mediaState.status} ${isVideo ? "is-video" : "is-image"}`;
+
+  if (mediaState.status === "loading") {
+    mediaPreview.innerHTML = `
+      <div class="media-loading">
+        <div class="media-loading-bars" aria-hidden="true"><i></i><i></i><i></i></div>
+        <strong>正在提交${mediaLabel}任务</strong>
+        <span>会把左侧完整提示词作为请求内容，等待模型接口返回结果。</span>
+      </div>
+    `;
+    mediaHint.textContent = "生成中，请稍等。正式接入异步视频接口时，这里可以改成轮询任务进度。";
+    return;
+  }
+
+  if (mediaState.status === "error") {
+    mediaPreview.innerHTML = `
+      <div class="media-error">
+        <strong>${mediaLabel}生成未完成</strong>
+        <span>${escapeHtml(mediaState.error || "接口返回异常，请检查 API 配置。")}</span>
+      </div>
+    `;
+    mediaHint.textContent = "当前页面已预留接口位置，但正式密钥应放在后端代理里，不要写进 GitHub Pages 前端。";
+    return;
+  }
+
+  if (mediaState.status === "success" && mediaState.url) {
+    const safeUrl = escapeHtml(mediaState.url);
+    mediaPreview.innerHTML = isVideo
+      ? `<div class="media-result"><video src="${safeUrl}" controls playsinline></video></div>`
+      : `<div class="media-result"><img src="${safeUrl}" alt="生成结果"></div>`;
+    mediaHint.textContent = promptChanged ? "提示词已经改过，当前展示的是上一次生成结果。" : "生成完成，可以下载结果或继续调整提示词后重新生成。";
+    return;
+  }
+
+  mediaPreview.innerHTML = `
+      <div class="media-empty">
+        <div class="media-empty-icon" aria-hidden="true"></div>
+        <strong>等待生成${mediaLabel}</strong>
+        <span>点击“${actionLabel}”后，会用左侧完整提示词调用模型接口。</span>
+      </div>
+  `;
+  mediaHint.textContent = "接口未接入前，这里只展示预览容器和状态；后续只需要配置后端代理地址。";
+}
+
+function pickMediaUrl(data) {
+  if (!data || typeof data !== "object") return "";
+  const direct = data.url || data.imageUrl || data.videoUrl || data.outputUrl;
+  if (direct) return direct;
+  const nested = data.data?.url || data.data?.imageUrl || data.data?.videoUrl || data.result?.url || data.result?.imageUrl || data.result?.videoUrl;
+  if (nested) return nested;
+  const outputs = data.outputs || data.output || data.images || data.videos;
+  if (Array.isArray(outputs) && outputs.length) {
+    const first = outputs[0];
+    return typeof first === "string" ? first : first?.url || first?.imageUrl || first?.videoUrl || "";
+  }
+  return "";
+}
+
+async function generateMediaFromPrompt({ prompt, mode: requestMode, preset }) {
+  if (!MEDIA_API_ENDPOINT) {
+    throw new Error("接口未配置：请先把 app.js 里的 MEDIA_API_ENDPOINT 换成你的后端代理地址。");
+  }
+
+  const response = await fetch(MEDIA_API_ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      mode: requestMode,
+      prompt,
+      preset
+    })
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.message || data.error || `接口请求失败：HTTP ${response.status}`);
+  }
+  const url = pickMediaUrl(data);
+  if (!url) {
+    throw new Error("接口已返回，但没有找到图片或视频地址。");
+  }
+  return {
+    url,
+    mediaType: data.mediaType || data.type || (requestMode === "video" ? "video" : "image")
+  };
+}
+
+async function handleGenerateMedia() {
+  const requestMode = mode;
+  const prompt = buildFullPrompt();
+  mediaState = {
+    status: "loading",
+    mode: requestMode,
+    prompt,
+    url: "",
+    mediaType: requestMode === "video" ? "video" : "image",
+    error: ""
+  };
+  renderMediaPanel();
+
+  try {
+    const result = await generateMediaFromPrompt({ prompt, mode: requestMode, preset: clone(current) });
+    mediaState = {
+      status: "success",
+      mode: requestMode,
+      prompt,
+      url: result.url,
+      mediaType: result.mediaType || (requestMode === "video" ? "video" : "image"),
+      error: ""
+    };
+    copyState.textContent = requestMode === "video" ? "视频结果已返回" : "图片结果已返回";
+  } catch (error) {
+    mediaState = {
+      status: "error",
+      mode: requestMode,
+      prompt,
+      url: "",
+      mediaType: requestMode === "video" ? "video" : "image",
+      error: error.message || "生成失败，请检查接口配置。"
+    };
+    copyState.textContent = "生成接口暂未完成";
+  }
+
+  renderMediaPanel();
+}
+
+function downloadMediaResult() {
+  if (!mediaState.url) return;
+  const a = document.createElement("a");
+  a.href = mediaState.url;
+  a.download = mediaState.mediaType === "video" ? "didi-prompt-video.mp4" : "didi-prompt-image.png";
+  a.target = "_blank";
+  a.rel = "noopener";
+  a.click();
 }
 
 function renderQuality() {
@@ -1215,13 +1391,17 @@ formSections.addEventListener("click", (event) => {
 });
 
 $("#imageModeBtn").addEventListener("click", () => {
+  const changed = mode !== "image";
   mode = "image";
+  if (changed) resetMediaState(mode);
   renderForm();
   updatePrompt();
 });
 
 $("#videoModeBtn").addEventListener("click", () => {
+  const changed = mode !== "video";
   mode = "video";
+  if (changed) resetMediaState(mode);
   renderForm();
   updatePrompt();
 });
@@ -1236,8 +1416,9 @@ $("#promptTabs").addEventListener("click", (event) => {
 
 $("#copyFullBtn").addEventListener("click", () => copyText(buildFullPrompt(), "已复制完整提示词"));
 $("#clearBtn").addEventListener("click", clearCurrent);
-$("#resetBtn").addEventListener("click", () => selectPreset(activePresetId));
-$("#savePresetBtn").addEventListener("click", saveAsMyPreset);
+$("#generateMediaBtn").addEventListener("click", handleGenerateMedia);
+$("#downloadMediaBtn").addEventListener("click", downloadMediaResult);
+$("#savePresetInlineBtn").addEventListener("click", saveAsMyPreset);
 $("#exportBtn").addEventListener("click", exportJson);
 $("#importBtn").addEventListener("click", () => $("#importFile").click());
 $("#drawerToggleBtn").addEventListener("click", () => {

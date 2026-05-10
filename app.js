@@ -310,14 +310,6 @@ const sections = [
     ]
   },
   {
-    title: "负面规则",
-    fields: [
-      { key: "negative", label: "负面提示词", type: "textarea" },
-      { key: "textNegative", label: "文字生成限制", type: "textarea" },
-      { key: "privacyNegative", label: "品牌 / 隐私限制", type: "textarea", wide: true }
-    ]
-  },
-  {
     title: "文生视频专属设置",
     videoOnly: true,
     fields: [
@@ -349,9 +341,16 @@ let current = clone(allPresets[0]);
 let activePresetId = current.id;
 let mode = "image";
 let activeCategory = "全部";
-let outputFormat = "structured";
+let outputFormat = "full";
+let settingsPinned = false;
+let settingsHover = false;
+let presetsExpanded = false;
+let elementLibraryCollapsed = { content: true, style: true };
 
 const $ = (selector) => document.querySelector(selector);
+const quickPresetList = $("#quickPresetList");
+const showAllPresetsBtn = $("#showAllPresetsBtn");
+const allPresetsPanel = $("#allPresetsPanel");
 const presetList = $("#presetList");
 const categoryFilters = $("#categoryFilters");
 const presetSearch = $("#presetSearch");
@@ -382,7 +381,16 @@ function saveCustomElements() {
 }
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ current, activePresetId, mode, activeCategory, outputFormat }));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    current,
+    activePresetId,
+    mode,
+    activeCategory,
+    outputFormat,
+    settingsPinned,
+    presetsExpanded,
+    elementLibraryCollapsed
+  }));
 }
 
 function restoreState() {
@@ -392,7 +400,13 @@ function restoreState() {
   activePresetId = state.activePresetId || current.id;
   mode = state.mode || "image";
   activeCategory = state.activeCategory || "全部";
-  outputFormat = state.outputFormat || "structured";
+  outputFormat = ["full", "content", "copy", "style", "video"].includes(state.outputFormat) ? state.outputFormat : "full";
+  settingsPinned = typeof state.settingsPinned === "boolean" ? state.settingsPinned : false;
+  presetsExpanded = false;
+  elementLibraryCollapsed = {
+    content: typeof state.elementLibraryCollapsed?.content === "boolean" ? state.elementLibraryCollapsed.content : true,
+    style: typeof state.elementLibraryCollapsed?.style === "boolean" ? state.elementLibraryCollapsed.style : true
+  };
 }
 
 function createEmptyPreset() {
@@ -433,9 +447,12 @@ function createEmptyPreset() {
 function renderAll() {
   renderMode();
   renderCategories();
+  renderQuickPresets();
   renderPresetList();
   renderForm();
   renderFormatButtons();
+  renderDrawerState();
+  renderAllPresetsPanel();
   updatePrompt();
 }
 
@@ -443,19 +460,33 @@ function renderMode() {
   const isVideo = mode === "video";
   document.body.classList.toggle("mode-image", !isVideo);
   document.body.classList.toggle("mode-video", isVideo);
-  $("#imageModeBtn").classList.toggle("active", !isVideo);
-  $("#videoModeBtn").classList.toggle("active", isVideo);
-  $("#tagMode").textContent = isVideo ? "文生视频" : "文生图";
-  $("#tagRatio").textContent = current.ratio || "未设比例";
-  $("#tagPreset").textContent = current.name || "未命名预设";
+  $("#imageModeBtn")?.classList.toggle("active", !isVideo);
+  $("#videoModeBtn")?.classList.toggle("active", isVideo);
+  $("#centerMode").textContent = isVideo ? "文生视频" : "文生图";
+  $("#centerRatio").textContent = current.ratio || "未设比例";
+  $("#centerPreset").textContent = current.name || "未命名预设";
   $("#activeTitle").textContent = current.name || "未命名预设";
-  $("#heroSubhead").textContent = isVideo
-    ? "当前模式适合整理开屏短视频、动态 Banner 和活动转化视频的镜头、文案与稳定性规则。"
-    : "当前模式适合整理小程序横版 Banner、开屏素材、活动页主视觉和电商促销海报的画面提示词。";
-  $("#posterTopline").textContent = isVideo ? "AI Video Preview" : "Commercial Banner";
-  $("#posterTitle").textContent = isVideo ? "视频创意" : (current.mainTitle || "新人福利");
-  $("#posterPrice").textContent = isVideo ? "动态镜头 · 商业转化" : (current.subTitle || current.offerText || "最高抵扣15元");
-  $("#posterButton").textContent = isVideo ? "生成视频Prompt" : (current.buttonText || "立即领取");
+  document.querySelectorAll(".video-tab").forEach((button) => {
+    button.hidden = !isVideo;
+  });
+  if (!isVideo && outputFormat === "video") {
+    outputFormat = "full";
+    renderFormatButtons();
+  }
+}
+
+function renderDrawerState() {
+  const open = settingsPinned || settingsHover;
+  document.body.classList.toggle("drawer-collapsed", !open);
+  document.body.classList.toggle("drawer-pinned", settingsPinned);
+  const button = $("#drawerToggleBtn");
+  if (!button) return;
+  button.innerHTML = settingsPinned
+    ? '<span class="drawer-button-inline">已固定 · 收起</span>'
+    : open
+      ? '<span class="drawer-button-inline">收起</span>'
+      : '<span class="drawer-gear" aria-hidden="true">⚙</span><span class="drawer-vertical-text">打开设定</span><span class="drawer-chevron" aria-hidden="true">›</span>';
+  button.setAttribute("aria-expanded", String(open));
 }
 
 function renderCategories() {
@@ -475,7 +506,8 @@ function getFilteredPresets() {
 
 function renderPresetList() {
   const filtered = getFilteredPresets();
-  $("#presetCount").textContent = `${filtered.length} 组`;
+  const count = $("#presetCount");
+  if (count) count.textContent = `${filtered.length} 组`;
   presetList.innerHTML = filtered.map((preset, index) => {
     const isMine = preset.category === "我的预设";
     const tags = [preset.category, preset.ratio, ...(preset.tags || [])].slice(0, 4);
@@ -491,6 +523,143 @@ function renderPresetList() {
       </button>
     `;
   }).join("") || `<div class="quality-item status-warn"><span class="dot"></span>没有匹配的预设</div>`;
+}
+
+function getQuickPresets() {
+  return builtInPresets.slice(0, 6);
+}
+
+function renderQuickIcon(preset, index) {
+  const quickIconById = {
+    "mini-banner": "quick-preset-1.png",
+    "ecommerce-coupon": "quick-preset-2.png",
+    "local-life": "quick-preset-3.png",
+    "game-launch": "quick-preset-4-safe.png",
+    "travel-spring": "quick-preset-5-safe.png",
+    "short-video-splash": "quick-preset-6-safe.png"
+  };
+  const quickIconByCategory = [
+    ["电商", "quick-preset-2.png"],
+    ["本地生活", "quick-preset-3.png"],
+    ["游戏", "quick-preset-4-safe.png"],
+    ["旅游", "quick-preset-5-safe.png"],
+    ["短视频", "quick-preset-6-safe.png"],
+    ["科技", "quick-preset-1.png"]
+  ];
+  const fallbackIcons = [
+    "quick-preset-1.png",
+    "quick-preset-2.png",
+    "quick-preset-3.png",
+    "quick-preset-4-safe.png",
+    "quick-preset-5-safe.png",
+    "quick-preset-6-safe.png"
+  ];
+  const fallback = fallbackIcons[index % fallbackIcons.length];
+  const fileName = quickIconById[preset.id] ||
+    quickIconByCategory.find(([category]) => String(preset.category || "").includes(category))?.[1] ||
+    fallback;
+  return `<img class="quick-illustration quick-image" src="assets/illustration/${fileName}" alt="" aria-hidden="true" loading="eager">`;
+  const key = preset.category || "";
+  if (key.includes("电商")) {
+    return `
+      <svg class="quick-illustration quick-icon-coupon" viewBox="0 0 112 82" aria-hidden="true">
+        <path class="shadow" d="M21 61h70v8H21z"/>
+        <path class="ticket" d="M19 24h74c-4 6-4 12 0 18-5 6-5 12 0 18H19c4-6 4-12 0-18 5-6 5-12 0-18Z"/>
+        <path class="ticket-fold" d="M31 25h49l5 7H26z"/>
+        <circle class="ticket-dot" cx="39" cy="42" r="5"/>
+        <circle class="ticket-dot" cx="73" cy="42" r="5"/>
+        <path class="percent" d="M43 55 71 29M44 32a7 7 0 1 1 0 14 7 7 0 0 1 0-14Zm26 20a7 7 0 1 1 0 14 7 7 0 0 1 0-14Z"/>
+      </svg>`;
+  }
+  if (key.includes("本地生活")) {
+    return `
+      <svg class="quick-illustration quick-icon-store" viewBox="0 0 112 82" aria-hidden="true">
+        <path class="shadow" d="M28 68h58v7H28z"/>
+        <rect class="store-body" x="31" y="34" width="52" height="34" rx="5"/>
+        <path class="awning-base" d="M25 24h64l-6 14H31z"/>
+        <path class="awning-stripe" d="M29 24h12l-2 14H25zM53 24h12v14H51zM77 24h12l-4 14H73z"/>
+        <rect class="door" x="51" y="47" width="16" height="21" rx="3"/>
+        <rect class="window" x="36" y="47" width="11" height="10" rx="2"/>
+        <circle class="plant" cx="26" cy="61" r="5"/>
+        <path class="plant-stem" d="M26 66v8"/>
+      </svg>`;
+  }
+  if (key.includes("游戏")) {
+    return `
+      <svg class="quick-illustration quick-icon-game" viewBox="0 0 112 82" aria-hidden="true">
+        <path class="shadow" d="M26 61h62v9H26z"/>
+        <path class="pad" d="M30 32c7-8 18-7 27-2h8c9-5 21-6 27 2 6 9 11 28 4 34-6 5-14-2-21-11H47c-7 9-15 16-21 11-7-6-2-25 4-34Z"/>
+        <path class="cross" d="M42 43v14M35 50h14"/>
+        <circle class="btn green" cx="76" cy="47" r="4"/>
+        <circle class="btn orange" cx="88" cy="51" r="4"/>
+        <circle class="btn blue" cx="80" cy="60" r="4"/>
+        <path class="shine" d="M36 35c8-4 16-3 22 1"/>
+      </svg>`;
+  }
+  if (key.includes("旅游")) {
+    return `
+      <svg class="quick-illustration quick-icon-travel" viewBox="0 0 112 82" aria-hidden="true">
+        <path class="shadow" d="M24 66h70v8H24z"/>
+        <path class="mount back" d="M21 63 44 29l23 34Z"/>
+        <path class="mount front" d="M42 66 68 25l27 41Z"/>
+        <path class="snow" d="m61 36 7-11 8 12-8-4Z"/>
+        <circle class="sun" cx="82" cy="25" r="8"/>
+        <path class="sign-post" d="M77 50v20"/>
+        <path class="sign" d="M72 45h24l-5 7H72z"/>
+      </svg>`;
+  }
+  if (key.includes("短视频")) {
+    return `
+      <svg class="quick-illustration quick-icon-phone" viewBox="0 0 112 82" aria-hidden="true">
+        <path class="shadow" d="M40 67h40v7H40z"/>
+        <rect class="phone" x="43" y="12" width="34" height="58" rx="8"/>
+        <rect class="screen" x="48" y="20" width="24" height="40" rx="5"/>
+        <path class="play" d="m57 34 13 8-13 8Z"/>
+        <circle class="home" cx="60" cy="65" r="2.5"/>
+        <path class="spark" d="M32 22h8M36 18v8"/>
+      </svg>`;
+  }
+  if (key.includes("科技")) {
+    return `
+      <svg class="quick-illustration quick-icon-tech" viewBox="0 0 112 82" aria-hidden="true">
+        <path class="shadow" d="M29 66h58v8H29z"/>
+        <rect class="device" x="30" y="24" width="54" height="38" rx="10"/>
+        <circle class="glow" cx="57" cy="43" r="13"/>
+        <path class="circuit" d="M38 43h11M65 43h12M57 30v-8M57 56v8"/>
+        <circle class="node" cx="57" cy="43" r="5"/>
+      </svg>`;
+  }
+  return `
+    <svg class="quick-illustration quick-icon-gift" viewBox="0 0 112 82" aria-hidden="true">
+      <path class="shadow" d="M27 65h58v8H27z"/>
+      <rect class="window" x="22" y="20" width="68" height="46" rx="10"/>
+      <path class="window-bar" d="M22 32h68"/>
+      <circle class="dot red" cx="31" cy="26" r="3"/>
+      <circle class="dot yellow" cx="41" cy="26" r="3"/>
+      <circle class="dot green" cx="51" cy="26" r="3"/>
+      <rect class="gift" x="43" y="39" width="30" height="22" rx="3"/>
+      <path class="ribbon" d="M58 39v22M43 48h30"/>
+      <path class="bow" d="M58 38c-13-13-19 2 0 4 19-2 13-17 0-4Z"/>
+    </svg>`;
+}
+
+function renderQuickPresets() {
+  if (!quickPresetList) return;
+  quickPresetList.innerHTML = getQuickPresets().map((preset, index) => `
+    <button class="quick-preset-card ${preset.id === activePresetId ? "active" : ""}" type="button" data-id="${preset.id}">
+      <span class="quick-index">${String(index + 1).padStart(2, "0")}</span>
+      ${renderQuickIcon(preset, index)}
+      <strong>${escapeHtml(preset.name)}</strong>
+      <small>${escapeHtml(preset.category)} · ${escapeHtml(preset.ratio)}</small>
+    </button>
+  `).join("");
+}
+
+function renderAllPresetsPanel() {
+  if (!allPresetsPanel || !showAllPresetsBtn) return;
+  allPresetsPanel.hidden = !presetsExpanded;
+  showAllPresetsBtn.textContent = presetsExpanded ? "收起全部" : "查看全部";
+  showAllPresetsBtn.setAttribute("aria-expanded", String(presetsExpanded));
 }
 
 function renderForm() {
@@ -545,13 +714,21 @@ function renderField(field) {
 function renderInlineElementLibrary(area) {
   const title = area === "content" ? "画面内容提示词库" : "视觉风格提示词库";
   const groups = elementGroups.filter((group) => group.area === area);
+  const collapsed = elementLibraryCollapsed[area] !== false;
   return `
-    <div class="inline-element-library" data-library-area="${area}">
-      <h4>${title}</h4>
-      <div class="element-library">
-        ${groups.map(renderElementGroup).join("")}
+    <div class="inline-element-library ${collapsed ? "collapsed" : ""}" data-library-area="${area}">
+      <div class="element-library-head">
+        <h4>${title}</h4>
+        <button class="library-toggle" type="button" data-library-toggle="${area}" aria-expanded="${String(!collapsed)}">
+          ${collapsed ? "展开" : "收起"}
+        </button>
       </div>
-      ${area === "style" ? renderCustomElementControls() : ""}
+      <div class="element-library-body">
+        <div class="element-library">
+          ${groups.map(renderElementGroup).join("")}
+        </div>
+        ${area === "style" ? renderCustomElementControls() : ""}
+      </div>
     </div>
   `;
 }
@@ -603,9 +780,18 @@ function renderCustomElementControls() {
 }
 
 function renderFormatButtons() {
-  document.querySelectorAll(".format-button").forEach((button) => {
+  document.querySelectorAll(".prompt-tab").forEach((button) => {
     button.classList.toggle("active", button.dataset.format === outputFormat);
   });
+  const titleMap = {
+    full: "完整提示词",
+    content: "画面内容",
+    copy: "广告文案",
+    style: "风格规则",
+    video: "视频设置"
+  };
+  const resultTitle = document.querySelector(".result-card h3");
+  if (resultTitle) resultTitle.textContent = titleMap[outputFormat] || "完整提示词";
 }
 
 function appendToField(field, value) {
@@ -684,90 +870,136 @@ function deleteCustomElement(id) {
   updatePrompt();
 }
 
-function buildPositiveLine() {
-  const modeParts = mode === "video"
-    ? [`生成模式：文生视频`, `视频长度：${current.videoLength}`, `镜头运动：${current.cameraMotion}`, `动态强度：${current.motionStrength}`]
-    : [`生成模式：文生图`];
-  return [
-    ...modeParts,
-    `画面类型：${current.name}`,
-    `比例：${current.ratio}`,
-    `主体：${current.subject}`,
-    `场景：${current.scene}`,
-    `动作姿态：${current.action}`,
-    `服装道具：${[current.outfit, current.props].filter(Boolean).join("、")}`,
-    `构图镜头：${[current.composition, current.camera].filter(Boolean).join("，")}`,
-    `视觉风格：${current.style}`,
-    `光线色彩：${[current.color, current.lighting].filter(Boolean).join("，")}`,
-    `画质细节：${current.quality}`,
-    `广告文案：主标题 ${current.mainTitle}，副标题 ${current.subTitle}，优惠 ${current.offerText}，按钮 ${current.buttonText}，完整标语 ${current.slogan}`,
-    `字体标语规则：${current.sloganRule}`,
-    `投放用途：${current.usage}`,
-    mode === "video" ? `视频限制：${current.videoRule}` : ""
-  ].filter((item) => !item.endsWith("：") && item.trim()).join("，");
+function filled(value, fallback = "未填写") {
+  return String(value || "").trim() || fallback;
 }
 
-function buildNegativeLine() {
-  return [current.negative, current.textNegative, current.privacyNegative, mode === "video" ? current.videoRule : ""]
-    .filter(Boolean)
-    .join("，");
-}
-
-function buildStructuredPrompt() {
+function buildFullPrompt() {
   const lines = [
     `生成模式：${mode === "video" ? "文生视频" : "文生图"}`,
-    `画面类型：${current.name}`,
-    `比例：${current.ratio}`,
+    `画面类型：${filled(current.name)}`,
+    `比例：${filled(current.ratio)}`,
     "",
     "【主体】",
-    current.subject || "未填写",
+    filled(current.subject),
     "",
     "【场景】",
-    current.scene || "未填写",
+    filled(current.scene),
     "",
     "【动作 / 服装 / 道具】",
-    `动作：${current.action || "未填写"}`,
-    `服装：${current.outfit || "未填写"}`,
-    `道具：${current.props || "未填写"}`,
+    `动作：${filled(current.action)}`,
+    `服装：${filled(current.outfit)}`,
+    `道具：${filled(current.props)}`,
     "",
     "【构图/镜头】",
-    `${current.composition || "未填写"}${current.camera ? `，${current.camera}` : ""}`,
+    `${filled(current.composition)}${current.camera ? `，${current.camera}` : ""}`,
     "",
     "【广告文案】",
-    `主标题：${current.mainTitle || "未填写"}`,
-    `副标题：${current.subTitle || "未填写"}`,
-    `价格/优惠：${current.offerText || "未填写"}`,
-    `按钮：${current.buttonText || "未填写"}`,
-    `完整标语：${current.slogan || "未填写"}`,
+    `主标题：${filled(current.mainTitle)}`,
+    `副标题：${filled(current.subTitle)}`,
+    `价格/优惠：${filled(current.offerText)}`,
+    `按钮：${filled(current.buttonText)}`,
+    `完整标语：${filled(current.slogan)}`,
     "",
     "【视觉风格】",
-    `${current.style || "未填写"}，${current.color || ""}，${current.lighting || ""}，${current.quality || ""}`,
+    `${filled(current.style)}，${current.color || ""}，${current.lighting || ""}，${current.quality || ""}`,
     "",
     "【字体/标语规则】",
-    current.sloganRule || "未填写",
+    filled(current.sloganRule),
     "",
     "【投放用途】",
-    current.usage || "未填写"
+    filled(current.usage)
   ];
   if (mode === "video") {
     lines.push("", "【视频设置】", `视频长度：${current.videoLength}`, `镜头运动：${current.cameraMotion}`, `动态强度：${current.motionStrength}`, `视频限制：${current.videoRule}`);
   }
-  lines.push("", "【负面规则】", buildNegativeLine() || "未填写");
   return lines.join("\n");
 }
 
-function buildSdPrompt() {
-  return `Positive Prompt:\n${buildPositiveLine()}\n\nNegative Prompt:\n${buildNegativeLine()}`;
+function buildContentPrompt() {
+  return [
+    "【画面内容】",
+    `主体：${filled(current.subject)}`,
+    `场景：${filled(current.scene)}`,
+    `动作/姿态：${filled(current.action)}`,
+    `服装：${filled(current.outfit)}`,
+    `道具：${filled(current.props)}`,
+    `构图：${filled(current.composition)}`,
+    `镜头：${filled(current.camera)}`
+  ].join("\n");
+}
+
+function buildCopyPrompt() {
+  return [
+    "【广告文案】",
+    `主标题：${filled(current.mainTitle)}`,
+    `副标题：${filled(current.subTitle)}`,
+    `价格/优惠：${filled(current.offerText)}`,
+    `按钮文案：${filled(current.buttonText)}`,
+    `完整标语：${filled(current.slogan)}`,
+    "",
+    "【字体/标语规则】",
+    filled(current.sloganRule)
+  ].join("\n");
+}
+
+function buildStylePrompt() {
+  return [
+    "【风格规则】",
+    `视觉风格：${filled(current.style)}`,
+    `色彩：${filled(current.color)}`,
+    `光线：${filled(current.lighting)}`,
+    `画质细节：${filled(current.quality)}`,
+    `比例：${filled(current.ratio)}`,
+    `投放用途：${filled(current.usage)}`
+  ].join("\n");
+}
+
+function buildVideoPrompt() {
+  if (mode !== "video") return "当前为文生图模式，切换到文生视频后可查看视频设置。";
+  return [
+    "【视频设置】",
+    `视频长度：${filled(current.videoLength)}`,
+    `镜头运动：${filled(current.cameraMotion)}`,
+    `动态强度：${filled(current.motionStrength)}`,
+    `视频限制：${filled(current.videoRule)}`
+  ].join("\n");
 }
 
 function buildPrompt() {
-  if (outputFormat === "line") return buildPositiveLine() + `，负面规则：${buildNegativeLine()}`;
-  if (outputFormat === "sd") return buildSdPrompt();
-  return buildStructuredPrompt();
+  if (outputFormat === "content") return buildContentPrompt();
+  if (outputFormat === "copy") return buildCopyPrompt();
+  if (outputFormat === "style") return buildStylePrompt();
+  if (outputFormat === "video") return buildVideoPrompt();
+  return buildFullPrompt();
+}
+
+function renderPromptHtml(prompt) {
+  let sectionIndex = 0;
+  return String(prompt || "")
+    .split("\n")
+    .map((line) => {
+      if (!line.trim()) return "<br>";
+      const match = line.match(/^【(.+)】$/);
+      if (match) {
+        sectionIndex += 1;
+        const tone = ((sectionIndex - 1) % 6) + 1;
+        return `<span class="prompt-section-title tone-${tone}">${escapeHtml(line)}</span>`;
+      }
+      return `<span class="prompt-line">${escapeHtml(line)}</span>`;
+    })
+    .join("<br>");
 }
 
 function updatePrompt() {
-  finalPrompt.value = buildPrompt();
+  const prompt = buildPrompt();
+  const formatChanged = finalPrompt.dataset.lastFormat !== outputFormat;
+  finalPrompt.dataset.rawPrompt = prompt;
+  finalPrompt.innerHTML = renderPromptHtml(prompt);
+  if (formatChanged) {
+    finalPrompt.scrollTop = 0;
+    finalPrompt.dataset.lastFormat = outputFormat;
+  }
   renderMode();
   renderQuality();
   copyState.textContent = "已根据当前内容更新";
@@ -775,18 +1007,14 @@ function updatePrompt() {
 }
 
 function renderQuality() {
-  const negativeText = buildNegativeLine();
-  const restrictionScore = ["乱码", "水印"].filter((word) => negativeText.includes(word)).length +
-    (/(Logo|品牌)/.test(negativeText) ? 1 : 0);
   const checks = [
     ["是否填写主体", current.subject ? "ok" : "miss"],
     ["是否填写场景", current.scene ? "ok" : "miss"],
     ["是否填写风格", current.style ? "ok" : "miss"],
     ["是否填写比例", current.ratio ? "ok" : "miss"],
-    ["是否有负面规则", negativeText ? "ok" : "miss"],
     ["视频长度已选择", mode !== "video" ? "ok" : current.videoLength ? "ok" : "miss"],
     ["广告图有主标题或标语", current.mainTitle || current.slogan ? "ok" : "miss"],
-    ["包含乱码/水印/Logo限制", restrictionScore === 3 ? "ok" : restrictionScore > 0 ? "warn" : "miss"]
+    ["字体/标语规则已填写", current.sloganRule ? "ok" : "warn"]
   ];
   const okCount = checks.filter(([, status]) => status === "ok").length;
   $("#qualitySummary").textContent = `${okCount}/${checks.length} 项通过`;
@@ -802,6 +1030,7 @@ function selectPreset(id) {
   if (!preset) return;
   current = { ...createEmptyPreset(), ...clone(preset) };
   activePresetId = id;
+  renderQuickPresets();
   renderPresetList();
   renderForm();
   updatePrompt();
@@ -912,6 +1141,17 @@ presetSearch.addEventListener("input", () => {
   renderPresetList();
 });
 
+quickPresetList.addEventListener("click", (event) => {
+  const card = event.target.closest("[data-id]");
+  if (card) selectPreset(card.dataset.id);
+});
+
+showAllPresetsBtn.addEventListener("click", () => {
+  presetsExpanded = !presetsExpanded;
+  renderAllPresetsPanel();
+  saveState();
+});
+
 presetList.addEventListener("click", (event) => {
   const deleteButton = event.target.closest("[data-delete-id]");
   if (deleteButton) {
@@ -938,6 +1178,15 @@ formSections.addEventListener("change", (event) => {
 });
 
 formSections.addEventListener("click", (event) => {
+  const libraryToggle = event.target.closest("[data-library-toggle]");
+  if (libraryToggle) {
+    const area = libraryToggle.dataset.libraryToggle;
+    elementLibraryCollapsed[area] = !(elementLibraryCollapsed[area] !== false);
+    renderForm();
+    saveState();
+    return;
+  }
+
   const deleteButton = event.target.closest("[data-custom-delete]");
   if (deleteButton) {
     event.stopPropagation();
@@ -977,7 +1226,7 @@ $("#videoModeBtn").addEventListener("click", () => {
   updatePrompt();
 });
 
-document.querySelector(".format-switch").addEventListener("click", (event) => {
+$("#promptTabs").addEventListener("click", (event) => {
   const button = event.target.closest("[data-format]");
   if (!button) return;
   outputFormat = button.dataset.format;
@@ -985,14 +1234,30 @@ document.querySelector(".format-switch").addEventListener("click", (event) => {
   updatePrompt();
 });
 
-$("#copyFullBtn").addEventListener("click", () => copyText(buildPrompt(), "已复制完整 Prompt"));
-$("#copyPositiveBtn").addEventListener("click", () => copyText(buildPositiveLine(), "已复制 Positive"));
-$("#copyNegativeBtn").addEventListener("click", () => copyText(buildNegativeLine(), "已复制 Negative"));
+$("#copyFullBtn").addEventListener("click", () => copyText(buildFullPrompt(), "已复制完整提示词"));
 $("#clearBtn").addEventListener("click", clearCurrent);
 $("#resetBtn").addEventListener("click", () => selectPreset(activePresetId));
 $("#savePresetBtn").addEventListener("click", saveAsMyPreset);
 $("#exportBtn").addEventListener("click", exportJson);
 $("#importBtn").addEventListener("click", () => $("#importFile").click());
+$("#drawerToggleBtn").addEventListener("click", () => {
+  settingsPinned = !settingsPinned;
+  settingsHover = settingsPinned;
+  renderDrawerState();
+  saveState();
+});
+
+$("#settingsDrawer").addEventListener("mouseenter", () => {
+  if (settingsPinned) return;
+  settingsHover = true;
+  renderDrawerState();
+});
+
+$("#settingsDrawer").addEventListener("mouseleave", () => {
+  if (settingsPinned) return;
+  settingsHover = false;
+  renderDrawerState();
+});
 $("#importFile").addEventListener("change", (event) => {
   const file = event.target.files?.[0];
   if (file) importJson(file);
